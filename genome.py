@@ -121,17 +121,16 @@ class Genome():
         return g3
 
     @staticmethod
-    def point_mutate(genome, rate, amount):
-        new_genome = copy.copy(genome)
+    def point_mutate(genome, rate):
+        new_genome = copy.deepcopy(genome)
         for gene in new_genome:
             for i in range(len(gene)):
                 if random.random() < rate:
-                    gene[i] += 0.1
-                if gene[i] >= 1.0:
-                    gene[i] = 0.9999
-                if gene[i] < 0.0:
-                    gene[i] = 0.0
+                    gene[i] += random.uniform(-0.2, 0.2)
+                    gene[i] = max(0.0, min(0.9999, gene[i]))
         return new_genome
+
+
 
     @staticmethod
     def shrink_mutate(genome, rate):
@@ -293,14 +292,16 @@ class URDFLink:
         #   </joint>
         joint_tag = adom.createElement("joint")
         joint_tag.setAttribute("name", self.name + "_to_" + self.parent_name)
-        if self.joint_type >= 0.5:
-            joint_tag.setAttribute("type", "revolute")
-        else:
-            joint_tag.setAttribute("type", "revolute")
+
+        # keep revolute (your original code used revolute either way)
+        joint_tag.setAttribute("type", "revolute")
+
         parent_tag = adom.createElement("parent")
         parent_tag.setAttribute("link", self.parent_name)
+
         child_tag = adom.createElement("child")
         child_tag.setAttribute("link", self.name)
+
         axis_tag = adom.createElement("axis")
         if self.joint_axis_xyz <= 0.33:
             axis_tag.setAttribute("xyz", "1 0 0")
@@ -308,20 +309,22 @@ class URDFLink:
             axis_tag.setAttribute("xyz", "0 1 0")
         if self.joint_axis_xyz > 0.66:
             axis_tag.setAttribute("xyz", "0 0 1")
-        
+
+        # ✅ FIXED LIMITS (lower must be < upper)
+        # Also give stronger effort + faster velocity so it can actually move/climb
         limit_tag = adom.createElement("limit")
-        # effort upper lower velocity
-        limit_tag.setAttribute("effort", "1")
-        limit_tag.setAttribute("upper", "-3.1415")
-        limit_tag.setAttribute("lower", "3.1415")
-        limit_tag.setAttribute("velocity", "1")
-        # <origin rpy="0 0 0" xyz="0 0.5 0"/>
+        limit_tag.setAttribute("effort", "50")
+        limit_tag.setAttribute("lower", "-3.1415")
+        limit_tag.setAttribute("upper", "3.1415")
+        limit_tag.setAttribute("velocity", "5")
+
+        # origin
         orig_tag = adom.createElement("origin")
-        
+
         rpy1 = self.joint_origin_rpy_1 * self.sibling_ind
         rpy = str(rpy1) + " " + str(self.joint_origin_rpy_2) + " " + str(self.joint_origin_rpy_3)
-        
         orig_tag.setAttribute("rpy", rpy)
+
         xyz = str(self.joint_origin_xyz_1) + " " + str(self.joint_origin_xyz_2) + " " + str(self.joint_origin_xyz_3)
         orig_tag.setAttribute("xyz", xyz)
 
@@ -331,7 +334,3 @@ class URDFLink:
         joint_tag.appendChild(limit_tag)
         joint_tag.appendChild(orig_tag)
         return joint_tag
-            
-
-
-
